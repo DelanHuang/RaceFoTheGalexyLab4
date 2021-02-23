@@ -1,7 +1,7 @@
-#include "msp.h"
-#include "core_cm4.h"
-#include "cmsis_gcc.h"
 #include "pwm.h"
+#include "msp.h"
+
+
 
 
 /**
@@ -34,6 +34,7 @@ void main(void)
     config_pwm_timer();
     config_pwm_gpio();
     start_pwm();
+    while(1);
 }
 
 

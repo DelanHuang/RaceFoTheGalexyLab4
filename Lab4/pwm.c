@@ -1,5 +1,5 @@
-#include "msp.h"
 #include "pwm.h"
+#include "msp.h"
 
 
 void config_pwm_timer(void){
@@ -7,7 +7,7 @@ void config_pwm_timer(void){
     TIMER_A0->CTL |= TIMER_A_CTL_TASSEL_2; //Chooses SMCLK as input clk
 
     //SET DIVIDER VALUE
-    TIMER_A0->CTL |= TIMER_A_CTL_ID__1 ; //DIVIDE BY MASK FOR ID = 1
+    TIMER_A0->CTL |= TIMER_A_CTL_ID__4 ; //DIVIDE BY MASK FOR ID = 2
 
     //SET CCR VALUE BASED TO TICKS
     TIMER_A0->CCR[0] = TICKS ;//Limit value for clock
