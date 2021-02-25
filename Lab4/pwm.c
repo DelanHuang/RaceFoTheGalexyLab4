@@ -1,17 +1,34 @@
 #include "pwm.h"
 #include "msp.h"
 
+/*
+   Math for dis
+   - 3MHz clock == 3*10^6 ticks/sec
+   - high == tick count when signal is returned to pin 2.5
+   - low == tick count when signal is sent from pin 2.4
+   - to get time from ticks we do ticks/clock == ticks/(3*10^6)
+   - equations are given in microseconds so we convert seconds to microseconds, (ticks/(3*10^6))*10^6 == ticks/3
+ */
+
+
+void dis(float high, float low){
+    //ECHO TO DISTANCE
+   Tdiff = low - high; //difference in ticks
+   time = Tdif/3  //convert ticks to microseconds
+   dis_cm = time/58; //distance in centimeters
+   dis_in = time/148; //distance in inches
+}
 
 void config_pwm_timer(void){
     TIMER_A0->CTL |= TIMER_A_CTL_IE; //Turns on interrupts for clock
     TIMER_A0->CTL |= TIMER_A_CTL_TASSEL_2; //Chooses SMCLK as input clk
 
     //SET DIVIDER VALUE
-    TIMER_A0->CTL |= TIMER_A_CTL_ID__4 ; //DIVIDE BY MASK FOR ID = 2
+    TIMER_A0->CTL |= TIMER_A_CTL_ID__4 ; //DIVIDE BY MASK FOR ID = 4
 
     //SET CCR VALUE BASED TO TICKS
-    TIMER_A0->CCR[0] = TICKS ;//Limit value for clock
-
+    TIMER_A0->CCR[0] = 0x001E; //10us signal
+    TIMER_A0->CCR[1] = ; //60ms signal
 
 }
 
