@@ -1,3 +1,10 @@
+/*
+ * pwm.h
+ *
+
+ */
+
+
 #ifndef PWM_H_
 #define PWM_H_
 
@@ -8,6 +15,7 @@
  * After running analysis with TICKS = 15, we noticed we were getting 94Khz which meant our pwm was running slightly slow. To counteract
  * this, we set TICKS = 14 = 0xE. We are guess this was due to the fact an entire tick period is required to reset the counter to 0.
  */
+#define TICKS (0xE)
 
 void config_pwm_timer(void);
 
@@ -19,5 +27,19 @@ void config_pwm_gpio(void);
 
 void config_switch_interrupt(void);
 
+void TimerA0_config(void);
+
+void TimerA1_config(void);
+
+void TimerA2_config(void);
+
+void gpio_config(void);
+
+void config_NVIC(void);
 
 #endif /* PWM_H_ */
+
+
+
+
+

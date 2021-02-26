@@ -1,12 +1,15 @@
 #include "msp.h"
+#include "pwm.h"
 
-int d1, d2, dist;
-bool count = 0;
+int d1 = 0, d2 = 0, count = 0;
+double dist;
 
 /**
  * main.c
  */
-void main(int argc, char *argv[]) {
+
+
+void main(void) {
 
 	WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;		// stop watchdog timer
 
@@ -18,8 +21,9 @@ void main(int argc, char *argv[]) {
 	TimerA2_config();
 	TIMER_A2->CTL |= TIMER_A_CTL_MC__UP; //start TIMER_A2
 
-	while(1) { //RUN FOR-EV-ER	}
+	while(1) {}
 }
+
 
 void TimerA0_config() {
     TIMER_A0->CTL |= TIMER_A_CTL_CLR;   		//clear TIMER_A0
@@ -80,38 +84,39 @@ void TA0_N_IRQHandler() {
 	 * TIMER_A0 is stopped and the final time is recorded. `dist` gives the last
 	 * recorded distance in meters.
 	 */
-	count = count++ % 2;			//counter
 
-	__disable_irq; 					//disable IRQs
+	__disable_irq(); 					//disable IRQsd
 
-	if(~count) {
-		TIMER_A0->CTL &= TIMER_A_CTL_MC__STOP; //stop TIMER_A0
+	if(count) {
+	    count = count++ % 2; //counter
+	    TIMER_A0->CTL &= TIMER_A_CTL_MC__STOP; //stop TIMER_A0
 		d2 = TIMER_A0->CCR[2];		//record final time
 		dist = (d2-d1)*340 / 2;		//record meters
 		TIMER_A0->R &= 0x0000;		//zero the R register
 	}
 	else {
-		TIMER_A0->CTL |= TIMER_A_CTL_MC__CONTINUOUS; //start TIMER_A0
-		d1 = TIMER_A0->CCR[2];	//record init time
+	    count = count++ % 2; //counter
+	    TIMER_A0->CTL |= TIMER_A_CTL_MC__CONTINUOUS; //start TIMER_A0
+		d1 = TIMER_A0->CCR[2];	//record initial time
 	}
-}
-    __enable_irq;					//enable IRQs
+
+    __enable_irq();					//enable IRQs
 }
 
 void TA1_0_IRQHandler() {
-	__disable_irq; 					//disable IRQs
+	__disable_irq(); 					//disable IRQs
 	P2->OUT &= ~BIT4;				//set P2.4 LOW
 	TIMER_A1->CTL &= TIMER_A_CTL_MC__STOP; //stop TIMER_A1
 	TIMER_A1->R &= 0x0000;			//zero out the R register
-    __enable_irq;					//enable IRQs
+    __enable_irq();					//enable IRQ
 
 }
 
 void TA2_0_IRQHandler() {
-	__disable_irq; 					//disable IRQs
+	__disable_irq(); 					//disable IRQs
 	TimerA1_config();					//configure TIMER_A1
     P2->OUT |= BIT4;					//set P2.4 HIGH
 	TIMER_A1->CTL |= TIMER_A_CTL_MC__UP; //start TIMER_A1
     TIMER_A2->CCTL[0] &= ~BIT0;			//lower interrupt flag
-    __enable_irq;					//enable IRQs
+    __enable_irq();					//enable IRQs
 }
