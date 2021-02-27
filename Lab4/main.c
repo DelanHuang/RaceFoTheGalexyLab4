@@ -38,10 +38,11 @@ void TimerA0_config() {
 void TimerA1_config() {
 	TIMER_A1->CTL |= TIMER_A_CTL_CLR;			//clear TIMER_A1
     TIMER_A1->CTL |= TIMER_A_CTL_SSEL__SMCLK; 	//SMCLK is source
+    TIMER_A1->CTL |= TIMER_A_CTL_ID__1; //Input divider 1
 
     TIMER_A1->CCTL[0] &= ~TIMER_A_CCTLN_CAP;	//Compare mode
     TIMER_A1->CCR[0] = 0x1E;             		//TICKS = 30 = 10UM
-    TIMER_A1->CCTL[0] |= TIMER_A_CCTLN_OUTMOD_7; //because why not?
+    //TIMER_A1->CCTL[0] |= TIMER_A_CCTLN_OUTMOD_7; //because why not?
     //TIMER_A1->CCTL[0] &= TIMER_A_CCTLN_OUTMOD_0; //set output mode
     TIMER_A1->CCTL[0] |= TIMER_A_CCTLN_CCIE; 	//enable interrupt
 }
@@ -51,6 +52,7 @@ void TimerA2_config() {
     TIMER_A2->CTL |= TIMER_A_CTL_SSEL__SMCLK; 	//SMCLK is source
 
     TIMER_A2->CCTL[0] &= ~TIMER_A_CCTLN_CAP;	//Compare mode
+    TIMER_A2->CTL |= TIMER_A_CTL_ID__4; //Input divider of 4
     TIMER_A2->CCR[0] = 0xAFC8;             		//TICKS = 45000 = 60ms
     TIMER_A2->CCTL[0] |= TIMER_A_CCTLN_OUTMOD_7; //because why not?
     //TIMER_A2->CCTL[0] &= TIMER_A_CCTLN_OUTMOD_0; //set output mode
@@ -92,7 +94,7 @@ void TA0_N_IRQHandler() {
 
 	if(count) {
 	    count = count++ % 2; //counter
-	    TIMER_A0->CTL &= TIMER_A_CTL_MC__STOP; //stop TIMER_A0
+	    TIMER_A0->CTL &= 0xFFCF; //stop TIMER_A0
 		d2 = TIMER_A0->CCR[2];		//record final time
 		dist = (d2-d1)*340 / 2;		//record meters
 		TIMER_A0->R &= 0x0000;		//zero the R register
@@ -111,7 +113,7 @@ void TA0_N_IRQHandler() {
 void TA1_0_IRQHandler() {
 	__disable_irq(); 					//disable IRQs
 	P2->OUT &= ~BIT4;				//set P2.4 LOW
-	TIMER_A1->CTL &= TIMER_A_CTL_MC__STOP; //stop TIMER_A1
+	TIMER_A1->CTL &= 0xFFCF; //stop TIMER_A1
 	TIMER_A1->R &= 0x0000;			//zero out the R register
     __enable_irq();					//enable IRQ
     TIMER_A1->CCTL[0] &= ~BIT0;     //lower interrupt flag
