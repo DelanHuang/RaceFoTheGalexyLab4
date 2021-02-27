@@ -42,7 +42,7 @@ void TimerA1_config() {
     TIMER_A1->CCTL[0] &= ~TIMER_A_CCTLN_CAP;	//Compare mode
     TIMER_A1->CCR[0] = 0x1E;             		//TICKS = 30 = 10UM
     TIMER_A1->CCTL[0] |= TIMER_A_CCTLN_OUTMOD_7; //because why not?
-    TIMER_A1->CCTL[0] &= TIMER_A_CCTLN_OUTMOD_0; //set output mode
+    //TIMER_A1->CCTL[0] &= TIMER_A_CCTLN_OUTMOD_0; //set output mode
     TIMER_A1->CCTL[0] |= TIMER_A_CCTLN_CCIE; 	//enable interrupt
 }
 
@@ -52,8 +52,8 @@ void TimerA2_config() {
 
     TIMER_A2->CCTL[0] &= ~TIMER_A_CCTLN_CAP;	//Compare mode
     TIMER_A2->CCR[0] = 0xAFC8;             		//TICKS = 45000 = 60ms
-    TIMER_A1->CCTL[0] |= TIMER_A_CCTLN_OUTMOD_7; //because why not?
-    TIMER_A1->CCTL[0] &= TIMER_A_CCTLN_OUTMOD_0; //set output mode
+    TIMER_A2->CCTL[0] |= TIMER_A_CCTLN_OUTMOD_7; //because why not?
+    //TIMER_A2->CCTL[0] &= TIMER_A_CCTLN_OUTMOD_0; //set output mode
     TIMER_A2->CCTL[0] |= TIMER_A_CCTLN_CCIE; 	//enable interrupt
 
     /* set 2.4 HIGH, turn on TimerA1, TimerA1 turns P2.4 low, */
@@ -69,6 +69,9 @@ void gpio_config() {
     P2->DIR |= BIT4;	//P2.4 is output
     P2->DIR &= ~BIT5;	//P2.5 is input
 
+    P2->OUT |= BIT4;
+
+    P2->REN &= ~BIT4;    //P2.4, disable pullup/pulldown resistor
 	P2->REN &= ~BIT5; 	//P2.5, disable pullup/pulldown resistor
 
     P2->SEL0 &= ~BIT4;	//P2.4 is GPIO
@@ -100,7 +103,9 @@ void TA0_N_IRQHandler() {
 		d1 = TIMER_A0->CCR[2];	//record initial time
 	}
 
-    __enable_irq();					//enable IRQs
+	TIMER_A0->CCTL[0] &= ~BIT0;     //lower interrupt flag
+	__enable_irq();					//enable IRQs
+
 }
 
 void TA1_0_IRQHandler() {
@@ -109,12 +114,11 @@ void TA1_0_IRQHandler() {
 	TIMER_A1->CTL &= TIMER_A_CTL_MC__STOP; //stop TIMER_A1
 	TIMER_A1->R &= 0x0000;			//zero out the R register
     __enable_irq();					//enable IRQ
-
+    TIMER_A1->CCTL[0] &= ~BIT0;     //lower interrupt flag
 }
 
 void TA2_0_IRQHandler() {
 	__disable_irq(); 					//disable IRQs
-	TimerA1_config();					//configure TIMER_A1
     P2->OUT |= BIT4;					//set P2.4 HIGH
 	TIMER_A1->CTL |= TIMER_A_CTL_MC__UP; //start TIMER_A1
     TIMER_A2->CCTL[0] &= ~BIT0;			//lower interrupt flag
