@@ -1,77 +1,44 @@
 #include "msp.h"
-#include "pwm.h"
 
+//header
+void TimerA0_config();
+void config_NVIC();
+void gpio_config();
+
+//declare global vars
 int d1 = 0, d2 = 0, count = 0;
 double dist;
 
-/**
- * main.c
+/*
+ * main_.c
+ *
+ *  Created on: Mar 3, 2021
+ *
  */
-
 
 void main(void) {
 
-	WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;		// stop watchdog timer
+	WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;		//stop watchdog timer
 
-	gpio_config();
 	TimerA0_config();
-	TimerA1_config();
 	config_NVIC();
 
-	TimerA2_config();
-	TIMER_A2->CTL |= TIMER_A_CTL_MC__UP; //start TIMER_A2
+	__delay_cycles(3000000); //also: asm nop ...
+
+	gpio_config();
+
+    TIMER_A0->CTL |= TIMER_A_CTL_MC__UP; //start TIMER_A0
 
 	while(1) {}
-}
 
-
-void TimerA0_config() {
-    TIMER_A0->CTL |= TIMER_A_CTL_CLR;   		//clear TIMER_A0
-    TIMER_A0->CTL |= TIMER_A_CTL_SSEL__SMCLK; //SMCLK is source
-
-    TIMER_A0->CCTL[2] |= TIMER_A_CCTLN_CAP;	//Capture mode
-    //TIMER_A0->CCTL[2] |= TIMER_A_CCTLN_OUTMOD_7; //because why not?
-    //TIMER_A0->CCTL[2] &= TIMER_A_CCTLN_OUTMOD_4; //set output toggle/reset
-    TIMER_A0->CCTL[2] |= TIMER_A_CCTLN_CCIE; //enable interrupt
-}
-
-void TimerA1_config() {
-	TIMER_A1->CTL |= TIMER_A_CTL_CLR;			//clear TIMER_A1
-    TIMER_A1->CTL |= TIMER_A_CTL_SSEL__SMCLK; 	//SMCLK is source
-    TIMER_A1->CTL |= TIMER_A_CTL_ID__1; //Input divider 1
-
-    TIMER_A1->CCTL[0] &= ~TIMER_A_CCTLN_CAP;	//Compare mode
-    TIMER_A1->CCR[0] = 0x1E;             		//TICKS = 30 = 10UM
-    //TIMER_A1->CCTL[0] |= TIMER_A_CCTLN_OUTMOD_7; //because why not?
-    //TIMER_A1->CCTL[0] &= TIMER_A_CCTLN_OUTMOD_0; //set output mode
-    TIMER_A1->CCTL[0] |= TIMER_A_CCTLN_CCIE; 	//enable interrupt
-}
-
-void TimerA2_config() {
-	TIMER_A2->CTL |= TIMER_A_CTL_CLR;			//clear TIMER_A1
-    TIMER_A2->CTL |= TIMER_A_CTL_SSEL__SMCLK; 	//SMCLK is source
-
-    TIMER_A2->CCTL[0] &= ~TIMER_A_CCTLN_CAP;	//Compare mode
-    TIMER_A2->CTL |= TIMER_A_CTL_ID__4; //Input divider of 4
-    TIMER_A2->CCR[0] = 0xAFC8;             		//TICKS = 45000 = 60ms
-    TIMER_A2->CCTL[0] |= TIMER_A_CCTLN_OUTMOD_7; //because why not?
-    //TIMER_A2->CCTL[0] &= TIMER_A_CCTLN_OUTMOD_0; //set output mode
-    TIMER_A2->CCTL[0] |= TIMER_A_CCTLN_CCIE; 	//enable interrupt
-
-    /* set 2.4 HIGH, turn on TimerA1, TimerA1 turns P2.4 low, */
-}
-
-void config_NVIC() {
-    __NVIC_EnableIRQ(TA0_N_IRQn);
-    __NVIC_EnableIRQ(TA1_0_IRQn);
-    __NVIC_EnableIRQ(TA2_0_IRQn);
 }
 
 void gpio_config() {
+
     P2->DIR |= BIT4;	//P2.4 is output
     P2->DIR &= ~BIT5;	//P2.5 is input
 
-    P2->OUT |= BIT4;
+    P2->OUT |= BIT4;	//P2.4 is default high
 
     P2->REN &= ~BIT4;    //P2.4, disable pullup/pulldown resistor
 	P2->REN &= ~BIT5; 	//P2.5, disable pullup/pulldown resistor
@@ -80,49 +47,64 @@ void gpio_config() {
     P2->SEL1 &= ~BIT4;
     P2->SEL0 |= BIT5;	//P2.5 is Primary Module
 	P2->SEL1 &= ~BIT5;
+
+}
+
+void TimerA0_config() {
+
+    TIMER_A0->CTL |= TIMER_A_CTL_CLR;   	//clear TIMER_A0
+    TIMER_A0->CTL |= TIMER_A_CTL_SSEL__SMCLK; //SMCLK is source
+
+    TIMER_A0->CCR[0] = 30; //10us signal
+
+    TIMER_A0->CCTL[1] &= ~TIMER_A_CCTLN_CAP; //CCTL[1] in compare mode (output)
+    TIMER_A0->CCTL[2] |= TIMER_A_CCTLN_CAP;	//CCTL[2] in capture mode (input)
+
+    TIMER_A0->CCTL[1] |= TIMER_A_CCTLN_CCIE; //enable interrupts
+    TIMER_A0->CCTL[2] |= TIMER_A_CCTLN_CCIE;
+
+    TIMER_A0->CCTL[1] &= ~TIMER_A_CCTLN_CCIFG; //clear interrupt flags
+    TIMER_A0->CCTL[2] &= ~TIMER_A_CCTLN_CCIFG; //clear interrupt flags
+}
+
+void config_NVIC() {
+    __NVIC_EnableIRQ(TA0_N_IRQn);
 }
 
 void TA0_N_IRQHandler() {
 	/*
-	 * This interrupt is triggered by the ultrasonic sensor. When ECHO goes HIGH,
-	 * TIMER_A0 is started, and an initial time is recorded. After ECHO goes LOW,
-	 * TIMER_A0 is stopped and the final time is recorded. `dist` gives the last
-	 * recorded distance in meters.
+	 * TIMER_A0->IV == 2: In this case we lower P2.4 after a 10us period has occured.
+	 *
+	 * TIMER_A0->IV == 4:
+	 * This interrupt is triggered by the ultrasonic sensor. When ECHO sends P2.5 HIGH,
+	 * an initial time is recorded from TIMER_A0->CCR[1]. After ECHO sends P2.5 LOW (the next interrupt),
+	 * the final time is recorded from TIMER_A0->CCR[1]. The calculation of`dist` gives the last
+	 * recorded distance in meters. TIMER_A0 is then reset.
 	 */
 
-	__disable_irq(); 					//disable IRQsd
+	if(TIMER_A0->IV == 0x2){	//interrupt flag for CCTL[1] / P2.4
 
-	if(count) {
-	    count = count++ % 2; //counter
-	    TIMER_A0->CTL &= 0xFFCF; //stop TIMER_A0
-		d2 = TIMER_A0->CCR[2];		//record final time
-		dist = (d2-d1)*340 / 2;		//record meters
-		TIMER_A0->R &= 0x0000;		//zero the R register
-	}
-	else {
-	    count = count++ % 2; //counter
-	    TIMER_A0->CTL |= TIMER_A_CTL_MC__CONTINUOUS; //start TIMER_A0
-		d1 = TIMER_A0->CCR[2];	//record initial time
+		P2->OUT &= ~BIT4;							//lower P2.4
+	    TIMER_A0->CCTL[1] &= ~TIMER_A_CCTLN_CCIFG; //clear interrupt flag
 	}
 
-	TIMER_A0->CCTL[0] &= ~BIT0;     //lower interrupt flag
-	__enable_irq();					//enable IRQs
+	else if(TIMER_A0->IV == 0x4){ //interrupt flag for CCTL[2] / P2.5
 
-}
+		count = count++ % 2;
 
-void TA1_0_IRQHandler() {
-	__disable_irq(); 					//disable IRQs
-	P2->OUT &= ~BIT4;				//set P2.4 LOW
-	TIMER_A1->CTL &= 0xFFCF; //stop TIMER_A1
-	TIMER_A1->R &= 0x0000;			//zero out the R register
-    __enable_irq();					//enable IRQ
-    TIMER_A1->CCTL[0] &= ~BIT0;     //lower interrupt flag
-}
+		if(count % 2 == 0) {
+			d1 = TIMER_A0->CCR[1];	//record init time
+		}
+		else {
+			d2 = TIMER_A0->CCR[1];	//record final time
+			dist = (d2-d1)*340 / 2;	//record meters
+			TimerA0_config();					//reset TIMER_A0
+		    TIMER_A0->CTL |= TIMER_A_CTL_MC__UP; //start TIMER_A0
+		}
 
-void TA2_0_IRQHandler() {
-	__disable_irq(); 					//disable IRQs
-    P2->OUT |= BIT4;					//set P2.4 HIGH
-	TIMER_A1->CTL |= TIMER_A_CTL_MC__UP; //start TIMER_A1
-    TIMER_A2->CCTL[0] &= ~BIT0;			//lower interrupt flag
-    __enable_irq();					//enable IRQs
+	    TIMER_A0->CCTL[2] &= ~TIMER_A_CCTLN_CCIFG; //clear interrupt flag
+	}
+
+	else { }
+
 }
