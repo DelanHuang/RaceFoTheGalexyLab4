@@ -1,1 +1,11 @@
-/.metadata/
+# The .gitignore file filters junk we don't want when we're pulling/pushing
+# our repos, keeping the air between us clear and beautiful. =)
+#
+.jxbrowser-data/
+.metadata/
+.launches/
+dvt/
+RemoteSystemsTempFiles/
+Debug/
+Release/
+/Lab4/.gitignore
