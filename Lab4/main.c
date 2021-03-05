@@ -47,8 +47,9 @@ void TimerA0_config() {
 
     //TIMER_A0->CCTL[n]
     TIMER_A0->CCTL[1] &= ~TIMER_A_CCTLN_CAP; //CCTL[1] in compare mode (output)
-    TIMER_A0->CCTL[1] |= TIMER_A_CCTLN_OUTMOD_4;	//P2.4 is our output mode (toggle/set)
     TIMER_A0->CCTL[2] |= TIMER_A_CCTLN_CAP;	//CCTL[2] in capture mode (input)
+    //TIMER_A0->CCTL[2] |= TIMER_A_CCTLN_OUTMOD_7;
+    //TIMER_A0->CCTL[1] |= TIMER_A_CCTLN_OUTMOD_4;	//P2.4 is our output mode (toggle/set)
 
     TIMER_A0->CCTL[2] |=TIMER_A_CCTLN_SCS;		//synchronous with clock
     TIMER_A0->CCTL[2] |= TIMER_A_CCTLN_SCCI;	//synchronous capture input
@@ -100,11 +101,12 @@ void TA0_N_IRQHandler() {
 	 * recorded distance in meters. TIMER_A0 is then reset.
 	 */
 	__disable_irq();	//disable interrupts
+
+
 	if(TIMER_A0->IV == 0x2){	//interrupt flag for CCTL[1] / P2.4
 
 		P2->OUT ^= BIT4;							//toggle P2.4
-		TIMER_A0->CTL &= ~TIMER_A_CTL_IFG;			//clear interrupt flags
-	    TIMER_A0->CCTL[1] &= 0xFFFE;
+		//TIMER_A0->CCTL[1] &= ~TIMER_A_CCTLN_CCIFG;	//explicit lower interrupt flag
 	}
 
 	else if(TIMER_A0->IV == 0x4){ //interrupt flag for CCTL[2] / P2.5
@@ -121,9 +123,9 @@ void TA0_N_IRQHandler() {
 		    TIMER_A0->CTL |= TIMER_A_CTL_MC__UP; //start TIMER_A0
 		}
 
-		TIMER_A0->CTL &= ~TIMER_A_CTL_IFG;			//clear interrupt flags
-	    TIMER_A0->CCTL[2] &= ~TIMER_A_CCTLN_CCIFG;
+	    //TIMER_A0->CCTL[2] &= ~TIMER_A_CCTLN_CCIFG;	//explicit lower interrupt flag
 	}
 
+	TIMER_A0->CTL &= ~TIMER_A_CTL_IFG;			//clear interrupt flags
 	__enable_irq();						//enable interrupts
 }
